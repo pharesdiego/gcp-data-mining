@@ -1,0 +1,4 @@
+functions-framework==3.*
+beautifulsoup4==4.12.2
+Flask==2.0.2
+html5lib==1.1
