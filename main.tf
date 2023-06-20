@@ -39,6 +39,16 @@ resource "google_storage_bucket" "cloud_fns_bucket" {
   }
 }
 
+import {
+  to = google_storage_bucket.composer_bucket
+  id = "us-west4-airflow-ccd67c1d-bucket"
+}
+
+resource "google_storage_bucket" "composer_bucket" {
+  name     = "us-west4-airflow-ccd67c1d-bucket"
+  location = "us-west4"
+}
+
 resource "google_storage_bucket_object" "transform_marketcap_zip" {
   name   = "transform_marketcap/function-source.zip"
   source = "./cloud_functions/transform_marketcap/function-source.zip"
@@ -49,6 +59,12 @@ resource "google_storage_bucket_object" "load_file_into_cloud_storage_zip" {
   name   = "load_file_into_cloud_storage/function-source.zip"
   source = "./cloud_functions/load_to_warehouse/function-source.zip"
   bucket = google_storage_bucket.cloud_fns_bucket.name
+}
+
+resource "google_storage_bucket_object" "etl_marketcap_dag" {
+  name   = "dags/etl_crypto_marketcap.py"
+  source = "./composer/dags/etl_crypto_marketcap.py"
+  bucket = google_storage_bucket.composer_bucket.name
 }
 
 import {
@@ -79,7 +95,7 @@ resource "google_cloudfunctions2_function" "transform_marketcap_fn" {
     available_memory                 = "256M"
     service_account_email            = "823447068653-compute@developer.gserviceaccount.com"
     service                          = "projects/my-learning-de/locations/us-west4/services/transform-marketcap"
-    ingress_settings                 = "ALLOW_ALL"
+    ingress_settings                 = "ALLOW_INTERNAL_ONLY"
     environment_variables            = {}
     available_cpu                    = "0.1666"
     all_traffic_on_latest_revision   = true
@@ -118,7 +134,7 @@ resource "google_cloudfunctions2_function" "load_file_into_cloud_storage" {
     available_memory                 = "256M"
     service_account_email            = "823447068653-compute@developer.gserviceaccount.com"
     service                          = "projects/my-learning-de/locations/us-west4/services/load-file-into-cloud-storage"
-    ingress_settings                 = "ALLOW_ALL"
+    ingress_settings                 = "ALLOW_INTERNAL_ONLY"
     available_cpu                    = "0.1666"
     all_traffic_on_latest_revision   = true
     environment_variables = {
@@ -128,5 +144,31 @@ resource "google_cloudfunctions2_function" "load_file_into_cloud_storage" {
 
   lifecycle {
     ignore_changes = [labels, timeouts]
+  }
+}
+
+import {
+  to = google_composer_environment.tasker
+  id = "airflow"
+}
+
+resource "google_composer_environment" "tasker" {
+  name = "airflow"
+
+  config {
+    software_config {
+      env_variables = {
+        AIRFLOW_VAR_SITE_URL         = var.airflow_site_url
+        AIRFLOW_VAR_DATA_FOLDER      = var.airflow_data_folder
+        AIRFLOW_VAR_TRANSFORM_FN_URL = var.transform_cloudfn_url
+        AIRFLOW_VAR_LOAD_FN_URL      = var.load_file_cloudfn_url
+      }
+    }
+
+    recovery_config {
+      scheduled_snapshots_config {
+        enabled = false
+      }
+    }
   }
 }
