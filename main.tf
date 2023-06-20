@@ -12,19 +12,9 @@ provider "google" {
   region  = "us-west4"
 }
 
-import {
-  to = google_storage_bucket.marketcap_bucket
-  id = "crypto_marketcap"
-}
-
 resource "google_storage_bucket" "marketcap_bucket" {
   name     = "crypto_marketcap"
   location = "us-west4"
-}
-
-import {
-  to = google_storage_bucket.cloud_fns_bucket
-  id = "gcf-v2-sources-823447068653-us-west4"
 }
 
 resource "google_storage_bucket" "cloud_fns_bucket" {
@@ -37,11 +27,6 @@ resource "google_storage_bucket" "cloud_fns_bucket" {
       lifecycle_rule
     ]
   }
-}
-
-import {
-  to = google_storage_bucket.composer_bucket
-  id = "us-west4-airflow-ccd67c1d-bucket"
 }
 
 resource "google_storage_bucket" "composer_bucket" {
@@ -65,11 +50,6 @@ resource "google_storage_bucket_object" "etl_marketcap_dag" {
   name   = "dags/etl_crypto_marketcap.py"
   source = "./composer/dags/etl_crypto_marketcap.py"
   bucket = google_storage_bucket.composer_bucket.name
-}
-
-import {
-  to = google_cloudfunctions2_function.transform_marketcap_fn
-  id = "projects/my-learning-de/locations/us-west4/functions/transform_marketcap"
 }
 
 resource "google_cloudfunctions2_function" "transform_marketcap_fn" {
@@ -106,11 +86,6 @@ resource "google_cloudfunctions2_function" "transform_marketcap_fn" {
   }
 }
 
-import {
-  to = google_cloudfunctions2_function.load_file_into_cloud_storage
-  id = "projects/my-learning-de/locations/us-west4/functions/load_file_into_cloud_storage"
-}
-
 resource "google_cloudfunctions2_function" "load_file_into_cloud_storage" {
   name     = "load_file_into_cloud_storage"
   location = "us-west4"
@@ -145,11 +120,6 @@ resource "google_cloudfunctions2_function" "load_file_into_cloud_storage" {
   lifecycle {
     ignore_changes = [labels, timeouts]
   }
-}
-
-import {
-  to = google_composer_environment.tasker
-  id = "airflow"
 }
 
 resource "google_composer_environment" "tasker" {
